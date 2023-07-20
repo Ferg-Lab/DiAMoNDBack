@@ -1,8 +1,7 @@
-# DiAMoNDBack: Diffusion-denoising Autoregressive Model for Non-Deterministic Backmapping of C$\alpha$ Protein Traces
+# DiAMoNDBack: Diffusion-denoising Autoregressive Model for Non-Deterministic Backmapping of Cα Protein Traces
 
-Paper: LINK TO PAPER
 
-A transferable approach for backmapping generic C$\alpha$ protein traces using Denoising Diffusion Probabilistic Models (DDPMs).
+A transferable approach for backmapping generic Cα protein traces using Denoising Diffusion Probabilistic Models (DDPMs).
 
 The DDPM models contained herein are adapted from the implementation by https://github.com/lucidrains/denoising-diffusion-pytorch, borrowing also from some changes to this implementation by https://github.com/tiwarylab/DDPM_REMD. 
 
@@ -60,11 +59,4 @@ Model checkpoints will start saving to a `./results/train_{save_name}` directory
 
 ## Data splits
 
-Training and evaluation splits in pdb format for all data used to train and test the models presented in the paper are available for download at: LINK TO DATA SPLITS
-
-## Citation
-
-```bibtex
-@article{
-}
-```
+Training and evaluation splits in pdb format for all data used to train and test the models presented in the paper are available for download via [Zenodo](https://zenodo.org/record/8169239).
