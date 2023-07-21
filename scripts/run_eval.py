@@ -165,7 +165,7 @@ def iterative_inference(data, system_name, cond_type, n_cond_res, model_name, pd
         
     (all_seqs, all_crds, all_ters, end_idx_list, n_sample_list, n_res_list) = data
     
-    # save original copy as all_crds will be iteratively updated
+    # save original copy as adecode_terminill_crds will be iteratively updated
     all_crds_ref = copy.deepcopy(all_crds)
     a_per_res = 14
     
@@ -259,5 +259,5 @@ data = prepare_pdbs(pdb_name_list, n_samples=n_samples, data_type=data_type, top
 #data = prepare_pdbs(pdb_name_list, n_samples)
 iterative_inference(data, training_set, cond_type, n_cond_res, model_name, pdb_save_names=pdb_save_names, dtime=dtime,
                           milestone=milestone, exclude_neighbors=exclude_neighbors, n_train_steps=n_train_steps,
-                            gamma=gamma, train_lr=train_lr, adamw=adamw, rescale=rescale, round2=False, decode_termini=True)
+                            gamma=gamma, train_lr=train_lr, adamw=adamw, rescale=rescale, round2=False, decode_termini=decode_termini)
 
