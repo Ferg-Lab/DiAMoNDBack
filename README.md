@@ -1,4 +1,5 @@
 # DiAMoNDBack: Diffusion-denoising Autoregressive Model for Non-Deterministic Backmapping of Cα Protein Traces
+![image1](https://github.com/Ferg-Lab/DiAMoNDBack/assets/40403472/ec4cb110-8e8a-4e3b-9878-73abe3450b23)
 
 
 A transferable approach for backmapping generic Cα protein traces using Denoising Diffusion Probabilistic Models (DDPMs).
