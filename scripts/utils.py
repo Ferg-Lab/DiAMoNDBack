@@ -728,7 +728,7 @@ def save_as_test(all_seqs, all_crds, all_ters, save_dir, prefix, save_type='test
     
     # don't save for inference, just output files directly
     if save_type!='inf':
-
+        os.makedirs(save_dir, exist_ok=True) 
         np.save(f'{save_dir}/{save_type}_{prefix}_traj.npy', test_xyzs)
         np.save(f'{save_dir}/test_{prefix}_shared_idxs.npy', mask_idxs)
 
