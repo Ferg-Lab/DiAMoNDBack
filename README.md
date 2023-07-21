@@ -57,6 +57,12 @@ $ python train.py --pdb_dir ../data/train_pdbs/ --save_name test_run --finetune 
 
 The model will begin training and periodically output checkpoints to a `./trained_models/train_{save_name}` directory. The argument provided to `--pdb_dir` should be a directory containing PDB files that will by default be processed for featurization and saved to `data/processed_features`. As featurization can become costly for large quantities of structures, this preprocessing step can be skipped by providing the `--run_preprocess 0` flag in which case the existing feature files with the associated `save_name` contained in `data/processed_features` will be used. 
 
+Inference can then be performed using these fine-tuned models using the inference scripts:
+
+```bash
+$ python run_eval.py --training_set test_run --data_type aa --pdb_dir ../data/PDB_test_pdbs/
+```
+
 ### Training from scratch 
 
 With a directory containing PDB structures that will be used for training, for example in `data/train_pdbs`, the same training script as for fine-tuning can be run simply without the `--finetune` argument:
