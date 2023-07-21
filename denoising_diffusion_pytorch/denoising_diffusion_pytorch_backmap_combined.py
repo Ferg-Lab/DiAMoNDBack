@@ -822,6 +822,7 @@ class GaussianDiffusion(nn.Module):
 #
 #        # x = x[ np.newaxis, ...]
 #        return torch.from_numpy(x).float()
+
 class Dataset_traj(torch.utils.data.Dataset):
     "Characterizes a dataset for PyTorch"
     def __init__(
@@ -835,23 +836,35 @@ class Dataset_traj(torch.utils.data.Dataset):
         super().__init__()
         self.folder = folder
         self.shared_idxs = shared_idxs
-        # enable npys to be passed in directly
-        if npy_data is None:
-            self.data = np.load(f"{folder}/{system}_traj.npy")
-        else:
-            self.data = npy_data
-           
-        # only normalize shared idxs during inference
-        if shared_idxs is not None:
-            self.data = self.data[:, : len(shared_idxs)]
+        
+        # for inference only
+        if self.folder is None:
+            self.max_data = 0
+            self.min_data = 0
             
-        self.max_data = np.max(self.data, axis=0)
-        self.min_data = np.min(self.data, axis=0)
+        else:
+            # enable npys to be passed in directly
+            if npy_data is None:
+                self.data = np.load(f"{folder}/{system}_traj.npy")
+            else:
+                self.data = npy_data
+
+            # only normalize shared idxs during inference
+            if shared_idxs is not None:
+                self.data = self.data[:, : len(shared_idxs)]
+
+            self.max_data = np.max(self.data, axis=0)
+            self.min_data = np.min(self.data, axis=0)
         
             
     def __len__(self):
         "Denotes the total number of samples"
-        return np.shape(self.data)[0]
+        
+        if self.folder is not None:
+            return np.shape(self.data)[0]
+        else:
+            return 1
+    
     def __getitem__(self, index):
         "Generates one sample of data"
         # Select sample
@@ -875,6 +888,7 @@ class Dataset_traj(torch.utils.data.Dataset):
         else:
             x = 2 * x / (self.max_data - self.min_data)
             x = x - 2 * self.min_data / (self.max_data - self.min_data) - 1
+            
         return torch.from_numpy(x).float()
 
 
@@ -917,15 +931,11 @@ class Trainer(object):
             MODEL_INFO += f"-gamma{scheduler_gamma}-"
         if adamw:
             MODEL_INFO += f"-optAdamW-"
-            
-
-        self.RESULTS_FOLDER = Path(f"./results/{system}/{MODEL_INFO}/{save_name}")
-        self.RESULTS_FOLDER.mkdir(exist_ok=True, parents=True)
-
-        
-        np.save(str(self.RESULTS_FOLDER / f"shared_idxs.npy"), diffusion_model.unmask_index)
-        np.save(str(self.RESULTS_FOLDER / f"op_number.npy"), op_number)
-        
+        if rescale is not None:
+            MODEL_INFO += f"-rescale{rescale}-"
+       
+        self.RESULTS_FOLDER = Path(f"./trained_models/{system}/{MODEL_INFO}")  # remove /save_name/ to reduce dir depth
+        self.RESULTS_FOLDER.mkdir(exist_ok=True, parents=True)   
         
         self.model = diffusion_model
         self.ema = EMA(ema_decay)
@@ -937,56 +947,66 @@ class Trainer(object):
         self.op_number = op_number  # + 1  MJ is this only for the trainer?
         self.gradient_accumulate_every = gradient_accumulate_every
         self.train_num_steps = train_num_steps
+        
+        if folder is None:
+            self.ds = Dataset_traj()
 
-        self.ds = Dataset_traj(folder, system)
-        if rescale is not None:
-            self.ds.max_data[57:-20] = rescale
-            self.ds.min_data[57:-20] = -rescale
-            self.ds.max_data[-20:] = 1.0
-            self.ds.min_data[-20:] = 0.0
-
-        self.dl = cycle(
-            data.DataLoader(
-                self.ds, batch_size=train_batch_size, shuffle=True, pin_memory=True
-            )
-        )
-
-        self.sample_batch_size = train_batch_size
-        if system_for_sample == None:
-            self.dl_sample = self.dl
+        # only needed when initializing a new model for training
         else:
-            self.ds_sample = Dataset_traj(folder, system_for_sample)
-            if sample_batch_size == None:
-                self.sample_batch_size = train_batch_size
-            self.dl_sample = cycle(
+            
+            np.save(str(self.RESULTS_FOLDER / f"shared_idxs.npy"), diffusion_model.unmask_index)
+            np.save(str(self.RESULTS_FOLDER / f"op_number.npy"), op_number)
+            
+            self.ds = Dataset_traj(folder, system)
+
+            if rescale is not None:
+                self.ds.max_data[57:-20] = rescale
+                self.ds.min_data[57:-20] = -rescale
+                self.ds.max_data[-20:] = 1.0
+                self.ds.min_data[-20:] = 0.0
+
+            self.dl = cycle(
                 data.DataLoader(
-                    self.ds_sample,
-                    batch_size=sample_batch_size,
-                    shuffle=True,
-                    pin_memory=True,
+                    self.ds, batch_size=train_batch_size, shuffle=True, pin_memory=True
                 )
             )
 
-        self.opt = Adam(diffusion_model.parameters(), lr=train_lr)
-        if adamw:
-            self.opt = AdamW(diffusion_model.parameters(), lr=train_lr)
-            
-        if self.scheduler_gamma is not None:
-            self.scheduler = torch.optim.lr_scheduler.ExponentialLR(self.opt, scheduler_gamma)
+            self.sample_batch_size = train_batch_size
+            if system_for_sample == None:
+                self.dl_sample = self.dl
+            else:
+                self.ds_sample = Dataset_traj(folder, system_for_sample)
+                if sample_batch_size == None:
+                    self.sample_batch_size = train_batch_size
+                self.dl_sample = cycle(
+                    data.DataLoader(
+                        self.ds_sample,
+                        batch_size=sample_batch_size,
+                        shuffle=True,
+                        pin_memory=True,
+                    )
+                )
 
-        self.step = 0
+            self.opt = Adam(diffusion_model.parameters(), lr=train_lr)
+            if adamw:
+                self.opt = AdamW(diffusion_model.parameters(), lr=train_lr)
 
-        assert (
-            not fp16 or fp16 and APEX_AVAILABLE
-        ), "Apex must be installed in order for mixed precision training to be turned on"
+            if self.scheduler_gamma is not None:
+                self.scheduler = torch.optim.lr_scheduler.ExponentialLR(self.opt, scheduler_gamma)
 
-        self.fp16 = fp16
-        if fp16:
-            (self.model, self.ema_model), self.opt = amp.initialize(
-                [self.model, self.ema_model], self.opt, opt_level="O1"
-            )
+            self.step = 0
 
-        self.reset_parameters()
+            assert (
+                not fp16 or fp16 and APEX_AVAILABLE
+            ), "Apex must be installed in order for mixed precision training to be turned on"
+
+            self.fp16 = fp16
+            if fp16:
+                (self.model, self.ema_model), self.opt = amp.initialize(
+                    [self.model, self.ema_model], self.opt, opt_level="O1"
+                )
+
+            self.reset_parameters()
 
     def reset_parameters(self):
         self.ema_model.load_state_dict(self.model.state_dict())
@@ -1098,5 +1118,3 @@ class Trainer(object):
 
         print("training completed")
 
-class Trainerk:
-    pass

@@ -171,7 +171,6 @@ def prepare_pdbs(pdb_name_list, n_samples=1, data_type='aa', top=None, stride=No
 
         # recover n_res - ter for each seq
         n_res_list += [n_res-len(ters[0])]*len(trj)
-            
     
     # get sampling indices
     n_sample_list = np.concatenate([[n]*len(pdb_name_list) for n in range(n_samples)])

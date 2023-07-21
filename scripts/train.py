@@ -14,9 +14,11 @@ Pre-process and train on pdbs from a directory pdb_dir
 If pre-processing has already been completed, set run_preprocess=False
 Features will be loaded from {feat_dir}/{save_name}*
 
-Sample input:
-python train_new.py -d ../data/test_pdbs -s train_pdb_run --run_preprocess true    # to generate features
-python train_new.py -d ../data/test_pdbs -s train_pdb_run --run_preprocess false   # if features are already generated
+Examples 
+
+python train.py -pdb_dir ../data/test_pdbs -save_name train_pdb_run --run_preprocess true    # to generate features
+python train.py -pdb_dir ../data/test_pdbs -save_name train_pdb_run --run_preprocess false   # if features are already generated
+python train.py --pdb_dir ../data/train_pdbs/ --save_name train_ft --finetune PDB # finetune from PDB-trained model
 
 '''
 
@@ -35,7 +37,7 @@ parser.add_argument("-d", "--pdb_dir", type=str)
 parser.add_argument("-s", "--save_name", type=str)
 parser.add_argument("-f", "--feat_dir", type=str, default='../data/processed_features')
 parser.add_argument("-c", "--finetune", type=str, default=None)
-parser.add_argument("-a", "--aug", type=int, default=None)
+parser.add_argument("-a", "--aug", type=int, default=1)
 
 #parser.add_argument("-p", "--run_preprocess", type=str, default=None)    # do we want this to be a bool input?
 parser.add_argument("--run_preprocess", type=str2bool, nargs='?',
@@ -47,9 +49,13 @@ pdb_dir = args.pdb_dir
 feat_dir = args.feat_dir
 save_name = args.save_name
 run_preprocess = args.run_preprocess
-finetune = args.finetune
 aug = args.aug
 
+# shortcuts for the PDB and DES model, otherwise can specify full path
+finetune = args.finetune
+if finetune == 'PDB': finetune = './trained_models/train_PDB/32-1-2-4-8-b128-lr2.0e-05-gamma0.9999965988084024--rescale20.0-/model-10.pt'
+elif finetune == 'PDB_DES-FT': finetune = './trained_models/train_PDB_DES-FT/32-1-2-4-8-b128-lr1.0e-05-gamma1.0--rescale20.0-/model-15.pt'
+    
 # local environment size
 n_cond_res = 14
 
@@ -143,7 +149,6 @@ trainer = Trainer(
     scheduler_gamma=scheduler_gamma,
     adamw=False,
     rescale=20.0,
-    save_name = save_name, 
 )
     
 if finetune is not None:
