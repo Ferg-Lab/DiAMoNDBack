@@ -26,8 +26,10 @@ Inference can be performed using a pre-trained or user-trained model via the `ru
 
 To backmap the PDB test data using the PDB-trained model:
 ```bash
-$ python run_eval.py --training_set PDB --data_type aa --pdb_dir ../data/all_train_test_pdbs/PDB_test
+$ python run_eval.py --training_set PDB --data_type aa --pdb_dir ../data/PDB_test_pdbs/
 ```
+
+Backmapping the D.E Shaw MD simulation data is also possible assuming the train/test data has been downloaded from Zenodo (see `Data splits` section below):
 
 To backmap the DES test set using the DES-finetuned model:
 ```bash
